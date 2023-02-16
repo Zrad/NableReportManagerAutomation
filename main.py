@@ -15,21 +15,43 @@ date = str
 type = str
 master_df = pd.DataFrame(columns=['Date', 'Source', 'Type', 'Customer', 'Device Class', 'Device Name', 'Patch Category', 'Patch Status', 'Count'])
 
+# Prompt user to select directory containing XLSX files
 def get_dir():
+    """
+    Prompts user to select the directory containing XLSX files.
+    Args:
+    None
+
+    Returns:
+    dir_path (string): The path of the selected directory.
+    """
     default_directory = str(Path.home().joinpath('Desktop'))
     dir_path = filedialog.askdirectory(initialdir=default_directory, title='Select Directory Containing XLSX Files')
 
     return dir_path
 
 # Function to import the Excel file
-def import_excel(file_path):
+def import_excel(file):
+    """
+    Imports an Excel file and sets variables based on the filename.
+
+    Args:
+    file_path (string): The path of the Excel file.
+
+    Returns:
+    df (Pandas dataframe): The dataframe containing the data from the Excel file.
+    source(string): The automatically pulled server source taken from the filename.
+    type(string): The automatically pulled endpoint type taken from the filename.
+    date(string):The automatically pulled date taken from the filename.
+    """
 
     # Set variables from the filename
-    test = os.path.basename(file_path) # Get name of the file
-    source = test.split(' ')[0] # Split the filename by the first space, get the item before
-    type = test.split(' ')[1] # Split the filename by the first space, get the item after
-    date = test.split('Patch Status')[1] # Split the filename by "Patch Status", take the word item after
-    date = date.split('T')[0] # Split the date by the T, take the item before
+
+    source = file.split(' ')[0] # Split the filename by the first space, get the item before
+    type = file.split(' ')[1] # Split the filename by the first space, get the item after
+    date1 = file.split('Patch Status')[1] # Split the filename by "Patch Status", take the word item after
+    date = date1.split('T')[0] # Split the date by the T, take the item before
+    print("Pulling information from the filename, found the source server is" , source , ". The endpoint type is" , type , ". The full date is" , date1 , " and the core date is" , date , ".")
     
     # Load the Excel file into a pandas dataframe
     df = pd.read_excel(file_path, sheet_name=None)
@@ -47,6 +69,7 @@ def clean_data(df):
     df (Pandas dataframe): The cleaned dataframe.
     """
     # Remove the first 5 sheets of the dataframe
+    print("Cleaing up data")
     for i in range(5):
         df.pop(list(df.keys())[0])
 
@@ -65,7 +88,6 @@ def clean_data(df):
             df[sheet_name] = df[sheet_name].drop(columns=[df[sheet_name].columns[0]]) # Drop first column
             customer_name = customer_name[10:] # Remove the text "Customer: "
             df[sheet_name] = df[sheet_name].assign(Customer=customer_name) #Add a new column with the customer_name value
-            #print(df[sheet_name].head(15))
     return df
 
 # Function to pull each patch status table from the sheets
@@ -79,6 +101,7 @@ def extract_table(df):
     Returns:
     sheet_dfs (dictionary): A dictionary containing the extracted data.
     """
+    print("Extracting tables from each sheet")
     statuses = ['Aborted', 'Failed', 'In Progress', 'Installed With Errors', 'Not Installed', 'Installed']
     sheet_dfs = {}
 
@@ -108,7 +131,7 @@ def merge_df(df, source, type, date):
     Returns:
     merged_df (dataframe): A dataframe containing the merged data.
     """
-
+    print("Merging each dataframe from df into one merged_df")
     merged_df = pd.concat(df) #Concat all data into one df
     merged_df = merged_df.iloc[:, :7] #Drop all columns after 7
     merged_df = merged_df.assign(Source=source) # Add a column with the server source
@@ -118,7 +141,7 @@ def merge_df(df, source, type, date):
     return (merged_df)
 
 # Save file
-def output_file(merged_df):
+def output_file(master_df, date):
     """
     Saves data from dataframe into csv file.
 
@@ -128,13 +151,19 @@ def output_file(merged_df):
     Returns:
     None
     """
+    print("Please select a filepath to save the output file to.")
     # Prompt user to select file path and name
     default_directory = str(Path.home().joinpath('Desktop'))
-    output_file_path = filedialog.asksaveasfilename(initialdir=default_directory, defaultextension='.csv', title="Save CSV File", filetypes=(('CSV Files', '*.csv'), ('All files', '*.*')))
+    output_file_path = filedialog.asksaveasfilename(initialdir=default_directory, initialfile=f"Patch Status - {date}.xlsx",defaultextension='.xlsx', title="Save The XLSX File", filetypes=(('XLSX Files', '*.xlsx'), ('All files', '*.*')))
+    print("Using", output_file_path, "to save the file to.")
 
-    # Save merged dataframe to CSV file
+    # create an Excel writer object
+    writer = pd.ExcelWriter(output_file_path, engine='xlsxwriter')
+
+    # Save merged dataframe to XLSX file
     try:
-        merged_df.to_csv(output_file_path, index=False)
+        print("Attempting to save file:", output_file_path)
+        merged_df.to_excel(writer, sheet_name='Data', index=False)
         print("Output file saved successfully")
     except FileNotFoundError:
         print("The specified file path could not be found. Please try again.")
@@ -143,20 +172,40 @@ def output_file(merged_df):
     except Exception as e:
         print("An unexpected error occurred while saving the output file: {}".format(e))
 
+    # create a pivot table
+    print("Creating pivot table")
+    pivot_table = pd.pivot_table(master_df, values='Count', index=['Source', 'Type'], columns='Patch Status', aggfunc='count', fill_value=0, margins=True)
+
+    # Pulling installed and all patch counts for each row
+    all_values = pivot_table['All'].drop(index='All')
+    installed_values = pivot_table['Installed'].drop(index='All')
+
+    # Calculate the percentage of installed values
+    percent_installed = installed_values / all_values * 100
+    pivot_table = pivot_table.assign(Percent_Installed=percent_installed)
+
+    # write the pivot table to a second sheet
+    print("Writing pivot table to second sheet.")
+    pivot_table.to_excel(writer, sheet_name='Summary')
+
+    writer.close()
 
     return
 
+# Main funtion of program
 if __name__ == '__main__':
 
     # Prompt user for directory path of excel files to import
     dir_path = get_dir()
+    print("Using directory path", dir_path)
 
     # Look at each file in the folder, if they are an excel file, process the file.
     for file in os.listdir(dir_path):
+        print("Looking at file:" , file)
         if file.endswith('.xlsx'):
             file_path = os.path.join(dir_path, file)
             # Import excel file
-            df, source, type, date = import_excel(file_path)
+            df, source, type, date = import_excel(file)
 
             # Clean up each sheet
             df = clean_data(df)
@@ -167,7 +216,12 @@ if __name__ == '__main__':
             # Merge all dataframes from df into a single dataframe called merged_df
             merged_df = merge_df(df, source, type, date)
 
+            # Append each file's merged_df into a single master_df
+            print("Appending each file's merged_df into the master_df")
             master_df = pd.concat([master_df, merged_df])
+        else:
+            print("File does not end with .xlsx, skipping to next file")
+            continue
 
     # Save data into csv file
-    output_file(master_df)
+    output_file(master_df, date)
