@@ -163,7 +163,7 @@ def output_file(master_df, date):
     # Save merged dataframe to XLSX file
     try:
         print("Attempting to save file:", output_file_path)
-        merged_df.to_excel(writer, sheet_name='Data', index=False)
+        master_df.to_excel(writer, sheet_name='Data', index=False)
         print("Output file saved successfully")
     except FileNotFoundError:
         print("The specified file path could not be found. Please try again.")
@@ -182,7 +182,9 @@ def output_file(master_df, date):
 
     # Calculate the percentage of installed values
     percent_installed = installed_values / all_values * 100
-    pivot_table = pivot_table.assign(Percent_Installed=percent_installed)
+    # Format as percentage with no decimal places
+    percent_installed_str = percent_installed.map('{:.1f}%'.format)
+    pivot_table = pivot_table.assign(Percent_Installed=percent_installed_str)
 
     # write the pivot table to a second sheet
     print("Writing pivot table to second sheet.")
