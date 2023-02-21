@@ -1,26 +1,28 @@
-N-Able Report Manager Processing Tool
-This program is a data processing tool designed to import reports sent by N-Able's Report Manager, clean up the data, extract specific tables from the data, and save the extracted data to a CSV file. The program uses the Python programming language and several popular Python libraries for data processing, including pandas and tkinter.
+N-Able Report Manager Extraction Tool
+This program is a data processing tool designed to import reports sent by N-Able's Report Manager, clean up the data, extract specific tables from the data, and save the extracted data to an XLSX file. The program uses the Python programming language and several popular Python libraries for data processing, including pandas and tkinter.
 
-How to Use the Program
-Open a command prompt or terminal window and navigate to the directory where the data_processing.py file is located.
-
-Run the command python data_processing.py to start the program.
-
-When prompted, select the Excel file you want to process. The program will load the data from the file and display a message indicating that the data has been imported successfully.
-
-The program will then clean up the data by removing unwanted sheets and columns, renaming columns, and filling in missing values. The cleaned data will be displayed in the terminal window.
-
-The program will then extract specific tables from the cleaned data based on certain criteria. The extracted tables will be displayed in the terminal window.
-
-Finally, the program will prompt you to select a file name and location for the output CSV file. The extracted tables will be saved to the selected file.
-
-Requirements
-Python 3.x
+Getting Started
+Prerequisites
+Python 3.6 or higher
 pandas
 tkinter
-Known Issues
-If the Excel file contains any sheets that do not match the expected format, the program may fail or produce unexpected results.
-The program currently only supports Excel files with the .xlsx file extension.
+XlsxWriter
+
+Usage
+Put all of the XLSX files you want to process in a single directory.
+Run the script and select the directory containing the files when prompted.
+Enter customer names to be filtered out in the filter.py file.
+Select a file path and name for the output file.
+The script will process the files and generate a new Excel file with the merged data.
+The script will prompt the user if they want to also save data to a single excel file where data from many reports can be used for long-term data analysis
+
+Built With
+Python - The programming language used
+pandas - Library used for data manipulation
+tkinter - Library used for GUI development
+XlsxWriter - Library used for Excel file generation
+
+
 Authors
 Zach Radabaugh (zach.radaba@gmail.com)
 License
