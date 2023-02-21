@@ -4,6 +4,7 @@ from tkinter import filedialog
 from pathlib import Path
 import pandas as pd
 import os
+from filter import customer_filter
 
 # Create a Tkinter root window
 root = tk.Tk()
@@ -14,9 +15,6 @@ source = str
 date = str
 type = str
 master_df = pd.DataFrame(columns=['Date', 'Source', 'Type', 'Customer', 'Device Class', 'Device Name', 'Patch Category', 'Patch Status', 'Count'])
-
-#Cusomters to filter out
-customer_filter = ['Customer 1', 'Customer 2', 'Customer 3']
 
 # Prompt user to select directory containing XLSX files
 def get_dir():
@@ -30,6 +28,8 @@ def get_dir():
     """
     default_directory = str(Path.home().joinpath('Desktop'))
     dir_path = filedialog.askdirectory(initialdir=default_directory, title='Select Directory Containing XLSX Files')
+
+    print("Using directory path", dir_path)
 
     return dir_path
 
@@ -204,6 +204,7 @@ def output_file(master_df, date):
     pivot_table.to_excel(writer, sheet_name='Summary')
 
     writer.close()
+    print("File save complete.")
 
     return
 
@@ -212,7 +213,6 @@ if __name__ == '__main__':
 
     # Prompt user for directory path of excel files to import
     dir_path = get_dir()
-    print("Using directory path", dir_path)
 
     # Look at each file in the folder, if they are an excel file, process the file.
     for file in os.listdir(dir_path):
@@ -243,5 +243,3 @@ if __name__ == '__main__':
 
     # Save data into csv file
     output_file(master_df, date)
-
-    input("File saved, press enter to close the window...")
