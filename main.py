@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import os
 from filter import customer_filter
+import powerbi_export
 
 # Create a Tkinter root window
 root = tk.Tk()
@@ -243,3 +244,27 @@ if __name__ == '__main__':
 
     # Save data into csv file
     output_file(master_df, date)
+
+    power_bi_choice = input("Would you like to save this data to the Power BI dataset? (Y/N): ")
+    if power_bi_choice == "Y":
+    
+        # Prompt user to select where to save the dataset
+        default_directory = str(Path.home().joinpath('Desktop'))
+        power_bi_path = filedialog.asksaveasfilename(initialdir=default_directory, initialfile=f"PowerBiReport.xlsx",defaultextension='.xlsx', title="Save The XLSX File", filetypes=(('XLSX Files', '*.xlsx'), ('All files', '*.*')))
+
+        #Use the create_report funciton from powerbi_export.py to create a report if not already present
+        powerbi_export.create_report(power_bi_path, master_df)
+
+        #Use the check_report function from powerbi_export.py to check if a report already has the data about to be saved
+        powerbi_export.check_report(power_bi_path, master_df)
+
+
+    elif power_bi_choice == "N":
+        print("Not saving data to Power BI, exiting now.")
+        exit()
+    else:
+        print("Invalid response, exiting now.")
+        exit()
+
+
+    input("Script completed, press enter to close the window...")
