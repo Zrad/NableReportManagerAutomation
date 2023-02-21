@@ -15,6 +15,9 @@ date = str
 type = str
 master_df = pd.DataFrame(columns=['Date', 'Source', 'Type', 'Customer', 'Device Class', 'Device Name', 'Patch Category', 'Patch Status', 'Count'])
 
+#Cusomters to filter out
+customer_filter = ['Customer 1', 'Customer 2', 'Customer 3']
+
 # Prompt user to select directory containing XLSX files
 def get_dir():
     """
@@ -140,6 +143,16 @@ def merge_df(df, source, type, date):
     
     return (merged_df)
 
+# Filter clients from the dataset
+def filter_df(master_df, customer_filter):
+    print("Filtering dataframe")
+    for customer in customer_filter:
+
+        print("Filtering out", customer)
+        # filter out rows where Customer is 'Bob'
+        master_df = master_df.loc[master_df['Customer'] != customer]
+    return(master_df)
+
 # Save file
 def output_file(master_df, date):
     """
@@ -174,7 +187,7 @@ def output_file(master_df, date):
 
     # create a pivot table
     print("Creating pivot table")
-    pivot_table = pd.pivot_table(master_df, values='Count', index=['Source', 'Type'], columns='Patch Status', aggfunc='count', fill_value=0, margins=True)
+    pivot_table = pd.pivot_table(master_df, values='Count', index=['Source', 'Type'], columns='Patch Status', aggfunc='sum', fill_value=0, margins=True)
 
     # Pulling installed and all patch counts for each row
     all_values = pivot_table['All'].drop(index='All')
@@ -225,5 +238,10 @@ if __name__ == '__main__':
             print("File does not end with .xlsx, skipping to next file")
             continue
 
+    #Filter out clients
+    master_df = filter_df(master_df, customer_filter)
+
     # Save data into csv file
     output_file(master_df, date)
+
+    input("File saved, press enter to close the window...")
