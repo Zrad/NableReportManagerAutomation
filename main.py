@@ -4,6 +4,7 @@ from tkinter import filedialog
 from pathlib import Path
 import pandas as pd
 import os
+from filter import customer_filter
 
 # Create a Tkinter root window
 root = tk.Tk()
@@ -27,6 +28,8 @@ def get_dir():
     """
     default_directory = str(Path.home().joinpath('Desktop'))
     dir_path = filedialog.askdirectory(initialdir=default_directory, title='Select Directory Containing XLSX Files')
+
+    print("Using directory path", dir_path)
 
     return dir_path
 
@@ -140,6 +143,16 @@ def merge_df(df, source, type, date):
     
     return (merged_df)
 
+# Filter clients from the dataset
+def filter_df(master_df, customer_filter):
+    print("Filtering dataframe")
+    for customer in customer_filter:
+
+        print("Filtering out", customer)
+        # filter out rows where Customer is 'Bob'
+        master_df = master_df.loc[master_df['Customer'] != customer]
+    return(master_df)
+
 # Save file
 def output_file(master_df, date):
     """
@@ -174,7 +187,7 @@ def output_file(master_df, date):
 
     # create a pivot table
     print("Creating pivot table")
-    pivot_table = pd.pivot_table(master_df, values='Count', index=['Source', 'Type'], columns='Patch Status', aggfunc='count', fill_value=0, margins=True)
+    pivot_table = pd.pivot_table(master_df, values='Count', index=['Source', 'Type'], columns='Patch Status', aggfunc='sum', fill_value=0, margins=True)
 
     # Pulling installed and all patch counts for each row
     all_values = pivot_table['All'].drop(index='All')
@@ -191,6 +204,7 @@ def output_file(master_df, date):
     pivot_table.to_excel(writer, sheet_name='Summary')
 
     writer.close()
+    print("File save complete.")
 
     return
 
@@ -199,7 +213,6 @@ if __name__ == '__main__':
 
     # Prompt user for directory path of excel files to import
     dir_path = get_dir()
-    print("Using directory path", dir_path)
 
     # Look at each file in the folder, if they are an excel file, process the file.
     for file in os.listdir(dir_path):
@@ -224,6 +237,9 @@ if __name__ == '__main__':
         else:
             print("File does not end with .xlsx, skipping to next file")
             continue
+
+    #Filter out clients
+    master_df = filter_df(master_df, customer_filter)
 
     # Save data into csv file
     output_file(master_df, date)
