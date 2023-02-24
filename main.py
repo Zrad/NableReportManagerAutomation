@@ -150,7 +150,7 @@ def filter_df(master_df, customer_filter):
     for customer in customer_filter:
 
         print("Filtering out", customer)
-        # filter out rows where Customer is 'Bob'
+        # filter out rows where Customer is in customer filter file
         master_df = master_df.loc[master_df['Customer'] != customer]
     return(master_df)
 
