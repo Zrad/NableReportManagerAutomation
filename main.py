@@ -4,8 +4,10 @@ from tkinter import filedialog
 from pathlib import Path
 import pandas as pd
 import mariadb
+import mariadb
 import os
 from filter import customer_filter
+from config import db_config
 from config import db_config
 
 # Create a Tkinter root window
@@ -122,6 +124,16 @@ def extract_table(df):
                 sheet_dfs[sheet_name + '_' + status] = sheet_dfs[sheet_name + '_' + status].fillna(method='ffill')
     return sheet_dfs
 
+# Filter clients from the dataset
+def filter_df(df, customer_filter):
+    print("Filtering dataframe")
+    for customer in customer_filter:
+
+        print("Filtering out", customer)
+        # filter out rows where Customer is in customer filter file
+        df = df.loc[df['Customer'] != customer]
+    return(df)
+
 # Function to merge dataframes into one dataframe
 def merge_df(df, source, type, date):
     """
@@ -144,16 +156,6 @@ def merge_df(df, source, type, date):
     merged_df = merged_df.assign(Date=date) # Add a column with the date
     
     return (merged_df)
-
-# Filter clients from the dataset
-def filter_df(master_df, customer_filter):
-    print("Filtering dataframe")
-    for customer in customer_filter:
-
-        print("Filtering out", customer)
-        # filter out rows where Customer is in customer filter file
-        master_df = master_df.loc[master_df['Customer'] != customer]
-    return(master_df)
 
 # Save file
 def output_file(master_df, date):
@@ -201,7 +203,7 @@ def output_file(master_df, date):
     percent_installed_str = percent_installed.map('{:.1f}%'.format)
     pivot_table = pivot_table.assign(Percent_Installed=percent_installed_str)
 
-    # write the pivot table to a second sheet
+    # Write the pivot table to a second sheet
     print("Writing pivot table to second sheet.")
     pivot_table.to_excel(writer, sheet_name='Summary')
 
@@ -273,6 +275,9 @@ if __name__ == '__main__':
             # Extract tables from each sheet
             df = extract_table(df)
 
+            #Filter out clients
+            df = filter_df(df, customer_filter)
+
             # Merge all dataframes from df into a single dataframe called merged_df
             merged_df = merge_df(df, source, type, date)
 
@@ -283,10 +288,7 @@ if __name__ == '__main__':
             print("File does not end with .xlsx, skipping to next file")
             continue
 
-    #Filter out clients
-    master_df = filter_df(master_df, customer_filter)
-
-    # Save data into csv file
+    # Save data into xlsx file
     output_file(master_df, date)
 
     # Save data to MariaDB
