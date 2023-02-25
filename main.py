@@ -4,7 +4,6 @@ from tkinter import filedialog
 from pathlib import Path
 import pandas as pd
 import mariadb
-import mariadb
 import os
 from filter import customer_filter
 from config import db_config
