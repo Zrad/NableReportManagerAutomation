@@ -3,9 +3,10 @@ import tkinter as tk
 from tkinter import filedialog
 from pathlib import Path
 import pandas as pd
+import mariadb
 import os
 from filter import customer_filter
-import powerbi_export
+from config import db_config
 
 # Create a Tkinter root window
 root = tk.Tk()
@@ -209,6 +210,49 @@ def output_file(master_df, date):
 
     return
 
+# Save data to MariaDB
+def output_db(master_df):
+    # Create a connection object
+    print("Connecting to MariaDB")
+    conn = mariadb.connect(**db_config)
+
+    # Create a cursor object
+    cursor = conn.cursor()
+
+    # Execute an SQL query to create a table
+    print("Creating table if one doesn't exist")
+    cursor.execute("CREATE TABLE IF NOT EXISTS my_table (id INT AUTO_INCREMENT PRIMARY KEY, date DATE, source VARCHAR(255), type VARCHAR(255), customer VARCHAR(255), device_class VARCHAR(255), device_name VARCHAR(255), patch_category VARCHAR(255), patch_status VARCHAR(255), count INT)")
+
+    # Loop through the data and insert each row into the table
+    print("Saving data to MariaDB")
+    for index, row in master_df.iterrows():
+        Date = row['Date']
+        Source = row['Source']
+        date = row['Date']
+        source = row['Source']
+        type = row['Type']
+        customer = row['Customer']
+        device_class = row['Device Class']
+        device_name = row['Device Name']
+        patch_category = row['Patch Category']
+        patch_status = row['Patch Status']
+        count = row['Count']
+        cursor.execute("INSERT INTO my_table (date, source, type, customer, device_class, device_name, patch_category, patch_status, count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (date, source, type, customer, device_class, device_name, patch_category, patch_status, count))
+
+    #Date	Source	Type	Customer	Device Class	Device Name	Patch Category	Patch Status	Count
+
+    # Commit the changes to the database
+    print("Commiting data")
+    conn.commit()
+
+    # Close the cursor and connection objects
+    print("Exiting from MariaDB")
+    cursor.close()
+    conn.close()
+
+
+    return
+
 # Main funtion of program
 if __name__ == '__main__':
 
@@ -245,26 +289,8 @@ if __name__ == '__main__':
     # Save data into csv file
     output_file(master_df, date)
 
-    power_bi_choice = input("Would you like to save this data to the Power BI dataset? (Y/N): ")
-    if power_bi_choice == "Y":
+    # Save data to MariaDB
+    output_db(master_df)
     
-        # Prompt user to select where to save the dataset
-        default_directory = str(Path.home().joinpath('Desktop'))
-        power_bi_path = filedialog.asksaveasfilename(initialdir=default_directory, initialfile=f"PowerBiReport.xlsx",defaultextension='.xlsx', title="Save The XLSX File", filetypes=(('XLSX Files', '*.xlsx'), ('All files', '*.*')))
-
-        #Use the create_report funciton from powerbi_export.py to create a report if not already present
-        powerbi_export.create_report(power_bi_path, master_df)
-
-        #Use the check_report function from powerbi_export.py to check if a report already has the data about to be saved
-        powerbi_export.check_report(power_bi_path, master_df)
-
-
-    elif power_bi_choice == "N":
-        print("Not saving data to Power BI, exiting now.")
-        exit()
-    else:
-        print("Invalid response, exiting now.")
-        exit()
-
 
     input("Script completed, press enter to close the window...")
