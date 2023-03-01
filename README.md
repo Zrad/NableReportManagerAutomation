@@ -8,6 +8,7 @@ This program is a data processing tool designed to import reports sent by N-Able
 * tkinter
 * XlsxWriter
 * Openpyxl
+* TQDM
 
 ## Usage
 * Put all of the XLSX files you want to process in a single directory.
@@ -23,6 +24,7 @@ This program is a data processing tool designed to import reports sent by N-Able
 * tkinter - Library used for GUI development
 * XlsxWriter - Library used for Excel file generation
 * Openpyxl - Library used to read Excel file
+* TQDM - Libray used to display progress
 
 
 ### Authors
