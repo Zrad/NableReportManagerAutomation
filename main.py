@@ -12,11 +12,6 @@ from config import db_config
 root = tk.Tk()
 root.withdraw()
 
-# Define global variables
-#source = str ##Can we just remove these global variables?
-#type = str
-#date = str
-
 # Prompt user to select directory containing CSV files
 def get_dir():
 
@@ -37,9 +32,9 @@ def import_status(file):
     date = date1.split('T')[0] # Split the date by the T, take the item before
     ##print(f"Pulling information from the filename: Server is {source}, type is {type}, date is {date}")
 
-    import_df = pd.read_csv(file_path, header=None, names=status_columns, usecols=range(3))
+    import_df = pd.read_csv(file_path, header=None, names=import_status_columns, usecols=range(8))
 
-    return import_df, source, type, date, status_columns
+    return import_df, source, type, date
 
 # Import Patch Details CSV File Function
 def import_details(file):
@@ -58,29 +53,34 @@ def import_details(file):
 def cleanup_df(import_df, source, type, date):
 
     if 'Patch Status' in file:
-        ##print(f"Cleaning {file} using Patch Status logic")
         
-        # Look for cell in column 1 that has txtPS_PatchCust_DevClassIns_CustDet
-        table_start_search_value = "txtPS_PatchCust_DevClassIns_CustDet"
-        table_end_search_value = "txtPS_Details_CustomerName"
+        # Look for cell in column 1 that has txtPS_Details_CustomerName
+        table_start_search_value = "txtPS_Details_CustomerName"
         row_index_start = import_df.loc[import_df['Customer_Name'] == table_start_search_value].index[0] + 1
-        row_index_end = import_df.loc[import_df['Customer_Name'] == table_end_search_value].index[0]
 
         # Create a new dataframe using the row indexes and resetting the row index
-        clean_df = import_df.iloc[row_index_start:row_index_end].reset_index(drop=True) 
+        clean_df = import_df.iloc[row_index_start:].reset_index(drop=True) 
+
+        # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
+        clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
+        clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
+
         # Add columns for source, type, and date
         clean_df = clean_df.assign(Source=source)
         clean_df = clean_df.assign(Type=type)
         clean_df = clean_df.assign(date=date)
 
+        # Remove the columns Details and Managed_Link
+        clean_df = clean_df.drop(['Details', 'Managed_Link'], axis=1)
+
         return clean_df
     elif 'Patch Details' in file:
-        ##print(f"Cleaning {file} using Patch Details logic")
 
         # Look for valid data by finding where there is data in column 7
         row_index = import_df[import_df.iloc[:, 7].notnull()].index[0]
         # Drop all rows above row_idex (including row_index)
         clean_df = import_df.drop(import_df.index[:row_index + 1])
+
         # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
         clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
         clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
@@ -118,7 +118,7 @@ def output_db(status_df, details_df, date, status_query, details_query):
 
     # Execute an SQL query to create a table
     print("Creating table if one doesn't exist")
-    cursor.execute("CREATE TABLE IF NOT EXISTS status_table (id INT AUTO_INCREMENT PRIMARY KEY, customer_name VARCHAR(255), installation_status VARCHAR(255), count INT, source VARCHAR(255), type VARCHAR(255), report_date DATE)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS status_table (id INT AUTO_INCREMENT PRIMARY KEY, customer_name VARCHAR(255), installation_status VARCHAR(255), device_class VARCHAR(255), device_name VARCHAR(255), patch_category VARCHAR(255), count INT, source VARCHAR(255), type VARCHAR(255), report_date DATE)")
     cursor.execute("CREATE TABLE IF NOT EXISTS details_table (id INT AUTO_INCREMENT PRIMARY KEY, customer_name VARCHAR(255), installation_status VARCHAR(255), device_class VARCHAR(255), device_name VARCHAR(255), patch_name VARCHAR(255), patch_products VARCHAR(255), patch_category VARCHAR(1255), publish_date DATE, approval_status VARCHAR(255), approval_date DATE, status_change_date DATE, source VARCHAR(255), report_date DATE)")
 
     # Execute the query to search for the date in the report_date column
@@ -134,6 +134,8 @@ def output_db(status_df, details_df, date, status_query, details_query):
 
     # Fetch the results of the query
     details_result = cursor.fetchall()
+    
+    # Setting amount of rows to send to DB per batch
     batch_size = 1000
     pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -204,17 +206,17 @@ if __name__ == '__main__':
     dir_path = get_dir()
 
     # Prepare the insert query
-    status_query = "INSERT INTO status_table (customer_name, installation_status, count, source, type, report_date) VALUES (?, ?, ?, ?, ?, ?)"
+    status_query = "INSERT INTO status_table (customer_name, installation_status, device_class, device_name,  patch_category, count, source, type, report_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     details_query = "INSERT INTO details_table (customer_name, installation_status, device_class, device_name, patch_name, patch_products, patch_category, publish_date, approval_status, approval_date, status_change_date, source, report_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-    #Set column names
-    status_columns = ['Customer_Name', 'Installation_Status', 'Count']
+    # Set column names
+    import_status_columns = ['Customer_Name', 'Details', 'Managed_Link', 'Installation_Status', 'Device_Class', 'Device_Name', 'Patch_Category', 'Count']
+    status_columns = ['Customer_Name', 'Installation_Status', 'Device_Class', 'Device_Name', 'Patch_Category', 'Count']
     details_columns = ['Customer_Name', 'Installation_Status', 'Device_Class', 'Device_Name', 'Patch_Name', 'Patch_Products', 'Patch_Category', 'Publish_Date', 'Approval_Status', 'Approval_Date', 'Status_Change_Date']
 
+    # Create empty dataframes with defined columns
     status_df = pd.DataFrame(columns=status_columns)
-    details_df = pd.DataFrame(columns=details_columns)
-
-    
+    details_df = pd.DataFrame(columns=details_columns)    
 
     # Look at each file in the folder, if they are a csv file, process the file.
     for file in os.listdir(dir_path):
@@ -226,7 +228,7 @@ if __name__ == '__main__':
                 print(f"Importing: {file}")
                 
                 # Import csv file
-                import_df, source, type, date, status_columns = import_status(file)
+                import_df, source, type, date = import_status(file)
 
                 # Clean csv file
                 clean_df = cleanup_df(import_df, source, type, date)
