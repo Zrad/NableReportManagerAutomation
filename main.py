@@ -37,12 +37,9 @@ def import_status(file):
     date = date1.split('T')[0] # Split the date by the T, take the item before
     ##print(f"Pulling information from the filename: Server is {source}, type is {type}, date is {date}")
 
-    #Set column names
-    columns = ['Customer_Name', 'Installation_Status', 'Count']
+    import_df = pd.read_csv(file_path, header=None, names=status_columns, usecols=range(3))
 
-    import_df = pd.read_csv(file_path, header=None, names=columns, usecols=range(3))
-
-    return import_df, source, type, date, columns
+    return import_df, source, type, date, status_columns
 
 # Import Patch Details CSV File Function
 def import_details(file):
@@ -53,11 +50,9 @@ def import_details(file):
     date = date1.split('T')[0] # Split the date by the T, take the item before
     ##print(f"Pulling information from the filename: Server is {source}, date is {date}")
 
-    #Set column names
-    columns = ['Customer_Name', 'Installation_Status', 'Device_Class', 'Device_Name', 'Patch_Name', 'Patch_Products', 'Patch_Category', 'Publish_Date', 'Approval_Status', 'Approval_Date', 'Status_Change_Date']
-    import_df = pd.read_csv(file_path, header=None, names=columns, usecols=range(11))
+    import_df = pd.read_csv(file_path, header=None, names=details_columns, usecols=range(11))
 
-    return import_df, source, date, columns
+    return import_df, source, date, details_columns
 
 # Clean Data Function
 def cleanup_df(import_df, source, type, date):
@@ -208,6 +203,19 @@ if __name__ == '__main__':
     # Prompt user for directory path of csv files to import
     dir_path = get_dir()
 
+    # Prepare the insert query
+    status_query = "INSERT INTO status_table (customer_name, installation_status, count, source, type, report_date) VALUES (?, ?, ?, ?, ?, ?)"
+    details_query = "INSERT INTO details_table (customer_name, installation_status, device_class, device_name, patch_name, patch_products, patch_category, publish_date, approval_status, approval_date, status_change_date, source, report_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+    #Set column names
+    status_columns = ['Customer_Name', 'Installation_Status', 'Count']
+    details_columns = ['Customer_Name', 'Installation_Status', 'Device_Class', 'Device_Name', 'Patch_Name', 'Patch_Products', 'Patch_Category', 'Publish_Date', 'Approval_Status', 'Approval_Date', 'Status_Change_Date']
+
+    status_df = pd.DataFrame(columns=status_columns)
+    details_df = pd.DataFrame(columns=details_columns)
+
+    
+
     # Look at each file in the folder, if they are a csv file, process the file.
     for file in os.listdir(dir_path):
         print(f"Looking at file: {file}")
@@ -218,28 +226,24 @@ if __name__ == '__main__':
                 print(f"Importing: {file}")
                 
                 # Import csv file
-                import_df, source, type, date, columns = import_status(file)
+                import_df, source, type, date, status_columns = import_status(file)
 
                 # Clean csv file
                 clean_df = cleanup_df(import_df, source, type, date)
-                status_df = pd.DataFrame(columns=columns)
-                status_df = pd.concat([status_df, clean_df])
 
-                # Prepare the insert query
-                status_query = "INSERT INTO status_table (customer_name, installation_status, count, source, type, report_date) VALUES (?, ?, ?, ?, ?, ?)"
+                # Append cleaned dataframe to status dataframe
+                status_df = pd.concat([status_df, clean_df])
 
             elif 'Patch Details' in file: # Search the filename for Patch Details
                 print(f"Importing: {file}")
                 # Import csv file
-                import_df, source, date, columns = import_details(file)
+                import_df, source, date, details_columns = import_details(file)
 
                 # Clean csv file
                 clean_df = cleanup_df(import_df, source, type, date)
-                details_df = pd.DataFrame(columns=columns)
-                details_df = pd.concat([details_df, clean_df])
 
-                # Prepare the insert query
-                details_query = "INSERT INTO details_table (customer_name, installation_status, device_class, device_name, patch_name, patch_products, patch_category, publish_date, approval_status, approval_date, status_change_date, source, report_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                # Append cleaned dataframe to details dataframe
+                details_df = pd.concat([details_df, clean_df])
 
             else: # Return error message if the file doesn't contain the correct names
                 print("File name doesn't contain Status or Details")
