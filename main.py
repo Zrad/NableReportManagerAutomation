@@ -1,4 +1,4 @@
-# Import require modules
+# Import required modules
 import tkinter as tk
 from tkinter import filedialog
 from pathlib import Path
@@ -24,14 +24,14 @@ def get_dir():
 
 # Import Patch Status CSV File Function
 def import_status(file):
+
     # Set variables from the filename
-    
     source = file.split(' ')[0] # Split the filename by the first space, get the item before
     type = file.split(' ')[1] # Split the filename by the first space, get the item after
     date1 = file.split('Patch Status')[1] # Split the filename by "Patch Status", take the word item after
     date = date1.split('T')[0] # Split the date by the T, take the item before
-    ##print(f"Pulling information from the filename: Server is {source}, type is {type}, date is {date}")
 
+    # Imports data into a new dataframe
     import_df = pd.read_csv(file_path, header=None, names=import_status_columns, usecols=range(8))
 
     return import_df, source, type, date
@@ -43,8 +43,8 @@ def import_details(file):
     source = file.split(' ')[0] # Split the filename by the first space, get the item before
     date1 = file.split('Patch Details')[1] # Split the filename by "Patch Details", take the word item after
     date = date1.split('T')[0] # Split the date by the T, take the item before
-    ##print(f"Pulling information from the filename: Server is {source}, date is {date}")
 
+    # Imports data into a new dataframe
     import_df = pd.read_csv(file_path, header=None, names=details_columns, usecols=range(11))
 
     return import_df, source, date, details_columns
@@ -61,7 +61,7 @@ def cleanup_df(import_df, source, type, date):
         # Create a new dataframe using the row indexes and resetting the row index
         clean_df = import_df.iloc[row_index_start:].reset_index(drop=True) 
 
-        # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
+        # Remove the "Customer: " text from the Customer_Name Column and "Patch Status: " text from the Customer_Name Column
         clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
         clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
 
@@ -81,7 +81,7 @@ def cleanup_df(import_df, source, type, date):
         # Drop all rows above row_idex (including row_index)
         clean_df = import_df.drop(import_df.index[:row_index + 1])
 
-        # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
+        # Remove the "Customer: " text from the Customer_Name Column and "Patch Status: " text from the Customer_Name Column
         clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
         clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
 
@@ -143,7 +143,7 @@ def output_db(status_df, details_df, date, status_query, details_query):
     # Check if the date was found in the report_date column
     if status_result:
         # Code to execute if the date was found
-        print("The date was found in the report_date column! The data is likely already on the database.")
+        print("The date was already in the report_date column. The data is likely already on the database.")
     else:
         # Code to execute if the date was not found
         print("The date was not found in the report_date column.")
@@ -166,7 +166,7 @@ def output_db(status_df, details_df, date, status_query, details_query):
 
     if details_result:
         # Code to execute if the date was found
-        print("The date was found in the report_date column! The data is likely already on the database.")
+        print("The date was already in the report_date column. The data is likely already on the database.")
     else:
         # Code to execute if the date was not found
         print("The date was not found in the report_date column.")
