@@ -1,4 +1,4 @@
-# Import required modules
+# Import require modules
 import tkinter as tk
 from tkinter import filedialog
 from pathlib import Path
@@ -24,14 +24,14 @@ def get_dir():
 
 # Import Patch Status CSV File Function
 def import_status(file):
-
     # Set variables from the filename
+    
     source = file.split(' ')[0] # Split the filename by the first space, get the item before
     type = file.split(' ')[1] # Split the filename by the first space, get the item after
     date1 = file.split('Patch Status')[1] # Split the filename by "Patch Status", take the word item after
     date = date1.split('T')[0] # Split the date by the T, take the item before
+    ##print(f"Pulling information from the filename: Server is {source}, type is {type}, date is {date}")
 
-    # Imports data into a new dataframe
     import_df = pd.read_csv(file_path, header=None, names=import_status_columns, usecols=range(8))
 
     return import_df, source, type, date
@@ -43,8 +43,8 @@ def import_details(file):
     source = file.split(' ')[0] # Split the filename by the first space, get the item before
     date1 = file.split('Patch Details')[1] # Split the filename by "Patch Details", take the word item after
     date = date1.split('T')[0] # Split the date by the T, take the item before
+    ##print(f"Pulling information from the filename: Server is {source}, date is {date}")
 
-    # Imports data into a new dataframe
     import_df = pd.read_csv(file_path, header=None, names=details_columns, usecols=range(11))
 
     return import_df, source, date, details_columns
@@ -61,7 +61,7 @@ def cleanup_df(import_df, source, type, date):
         # Create a new dataframe using the row indexes and resetting the row index
         clean_df = import_df.iloc[row_index_start:].reset_index(drop=True) 
 
-        # Remove the "Customer: " text from the Customer_Name Column and "Patch Status: " text from the Customer_Name Column
+        # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
         clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
         clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
 
@@ -81,7 +81,7 @@ def cleanup_df(import_df, source, type, date):
         # Drop all rows above row_idex (including row_index)
         clean_df = import_df.drop(import_df.index[:row_index + 1])
 
-        # Remove the "Customer: " text from the Customer_Name Column and "Patch Status: " text from the Customer_Name Column
+        # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
         clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
         clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
 
@@ -143,7 +143,7 @@ def output_db(status_df, details_df, date, status_query, details_query):
     # Check if the date was found in the report_date column
     if status_result:
         # Code to execute if the date was found
-        print("The date was already in the report_date column. The data is likely already on the database.")
+        print("The date was found in the report_date column! The data is likely already on the database.")
     else:
         # Code to execute if the date was not found
         print("The date was not found in the report_date column.")
@@ -166,7 +166,7 @@ def output_db(status_df, details_df, date, status_query, details_query):
 
     if details_result:
         # Code to execute if the date was found
-        print("The date was already in the report_date column. The data is likely already on the database.")
+        print("The date was found in the report_date column! The data is likely already on the database.")
     else:
         # Code to execute if the date was not found
         print("The date was not found in the report_date column.")
@@ -196,6 +196,56 @@ def output_db(status_df, details_df, date, status_query, details_query):
     print("Exiting from MariaDB")
     cursor.close()
     conn.close()
+
+    return
+
+# Save a summary report to an XLSX file
+def output_summary(status_df, date):
+    print("Please select a filepath to save the output file to.")
+
+    # Prompt user to select file path and name
+    default_directory = str(Path.home().joinpath('Desktop'))
+    output_file_path = filedialog.asksaveasfilename(initialdir=default_directory, initialfile=f"Patch Status - {date}.xlsx",defaultextension='.xlsx', title="Save The XLSX File", filetypes=(('XLSX Files', '*.xlsx'), ('All files', '*.*')))
+    print("Using", output_file_path, "to save the file to.")
+
+    # create an Excel writer object
+    writer = pd.ExcelWriter(output_file_path, engine='xlsxwriter')
+
+    # Convert Count column to integers for better data compatibility
+    status_df['Count'] = status_df['Count'].astype('int64')
+
+    # Save merged dataframe to XLSX file
+    try:
+        print("Attempting to save file:", output_file_path)
+        status_df.to_excel(writer, sheet_name='Data', index=False)
+        print("Output file saved successfully")
+    except FileNotFoundError:
+        print("The specified file path could not be found. Please try again.")
+    except PermissionError:
+        print("You do not have permission to save a file at the specified location. Please try again with a different file path.")
+    except Exception as e:
+        print("An unexpected error occurred while saving the output file: {}".format(e))
+
+    # create a pivot table
+    print("Creating pivot table")
+    pivot_table = pd.pivot_table(status_df, values='Count', index=['Source', 'Type'], columns='Installation_Status', aggfunc='sum', fill_value=0, margins=True)
+
+    # Pulling installed and all patch counts for each row
+    all_values = pivot_table['All'].drop(index='All')
+    installed_values = pivot_table['Installed'].drop(index='All')
+
+    # Calculate the percentage of installed values
+    percent_installed = installed_values / all_values * 100
+    # Format as percentage with no decimal places
+    percent_installed_str = percent_installed.map('{:.1f}%'.format)
+    pivot_table = pivot_table.assign(Percent_Installed=percent_installed_str)
+
+    # write the pivot table to a second sheet
+    print("Writing pivot table to second sheet.")
+    pivot_table.to_excel(writer, sheet_name='Summary')
+
+    writer.close()
+    print("File save complete.")
 
     return
 
@@ -254,6 +304,8 @@ if __name__ == '__main__':
         else:
             print("File does not end with .csv, skipping to next file")
             continue
+
+    output_summary(status_df, date)
 
     # Export data to MariaDB
     output_db(status_df, details_df, date, status_query, details_query)
