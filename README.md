@@ -5,6 +5,9 @@ This program is a data processing tool designed to import reports sent by N-Able
 ### Prerequisites
 * Python 3.6 or higher
 * pandas
+* os
+* mariadb
+* pathlib
 * tkinter
 * TQDM
 
@@ -12,15 +15,16 @@ This program is a data processing tool designed to import reports sent by N-Able
 * Put all of the CSV files you want to process in a single directory.
 * Run the script and select the directory containing the files when prompted.
 * The script will process the files and export the data to a DB using the configuration in config.py.
+* The script will prompt the user to choose where to save an exported status summary in XLSX format.
 
 ## Built With
 * Python - The programming language used
 * pandas - Library used for data manipulation
+* os - A standard Python library for interacting with the operating system.
+* mariadb - A module for connecting to a MariaDB database.
+* pathlib - A module that provides an object-oriented way to interact with file system paths.
 * tkinter - Library used for GUI development
 * TQDM - Libray used to display progress
-
-## Branch Notes
-As I found a better export option in N-Able which saves in csv format and also includes all of the individual patch information which is helpful, I've rewritten this script to just pull in the data from the CSV file and export the data to a DB. It is much simpler this way, however at the moment, it doesn't export out a summary xlsx file. This likely will be added in at a later stage.
 
 ### Authors
 Zach Radabaugh (zach.radaba@gmail.com)
