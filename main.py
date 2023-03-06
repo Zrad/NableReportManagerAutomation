@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import mariadb
 from tqdm import tqdm
-from config import db_config
+from config import db_config as db_config, cust_filter as cust_filter
 
 # Create a Tkinter root window
 root = tk.Tk()
@@ -64,6 +64,11 @@ def cleanup_df(import_df, source, type, date):
         # Remove the Customer: text from the Customer_Name Column and Patch Status: text from the Customer_Name Column
         clean_df['Customer_Name'] = clean_df['Customer_Name'].str.replace('Customer: ', '')
         clean_df['Installation_Status'] = clean_df['Installation_Status'].str.replace('Patch Status: ', '')
+
+        # Filter out customers in the cust_filter array in config.py
+        for customer in cust_filter:
+            print("Filtering out", customer)
+            clean_df = clean_df.loc[clean_df['Customer_Name'] != customer]
 
         # Add columns for source, type, and date
         clean_df = clean_df.assign(Source=source)
