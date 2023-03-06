@@ -1,31 +1,30 @@
 # N-Able Report Manager Extraction Tool
-This program is a data processing tool designed to import reports sent by N-Able's Report Manager, clean up the data, extract specific tables from the data, and save the extracted data to an XLSX file. The program uses the Python programming language and several popular Python libraries for data processing, including pandas and tkinter.
+This program is a data processing tool designed to import reports sent by N-Able's Report Manager, clean up the data, and exports the extracted data to MariaDB. The program uses the Python programming language and several popular Python libraries for data processing, including pandas and tkinter.
 
 ## Getting Started
 ### Prerequisites
 * Python 3.6 or higher
 * pandas
+* os
+* mariadb
+* pathlib
 * tkinter
-* XlsxWriter
-* Openpyxl
 * TQDM
 
 ## Usage
-* Put all of the XLSX files you want to process in a single directory.
+* Put all of the CSV files you want to process in a single directory.
 * Run the script and select the directory containing the files when prompted.
-* Enter customer names to be filtered out in the filter.py file.
-* Select a file path and name for the output file.
-* The script will process the files and generate a new Excel file with the merged data.
-* The script will prompt the user if they want to also save data to a single excel file where data from many reports can be used for long-term data analysis
+* The script will process the files and export the data to a DB using the configuration in config.py.
+* The script will prompt the user to choose where to save an exported status summary in XLSX format.
 
 ## Built With
 * Python - The programming language used
 * pandas - Library used for data manipulation
+* os - A standard Python library for interacting with the operating system.
+* mariadb - A module for connecting to a MariaDB database.
+* pathlib - A module that provides an object-oriented way to interact with file system paths.
 * tkinter - Library used for GUI development
-* XlsxWriter - Library used for Excel file generation
-* Openpyxl - Library used to read Excel file
 * TQDM - Libray used to display progress
-
 
 ### Authors
 Zach Radabaugh (zach.radaba@gmail.com)
